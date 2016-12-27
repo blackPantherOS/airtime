@@ -1,0 +1,16 @@
+[Unit]
+Description=Airtime Liquidsoap Media Streaming Daemon
+After=syslog.target network.target icecast.service
+
+[Service]
+#Type=simple
+PIDFile=/var/run/airtime-liquidsoap.pid
+User=apache
+ExecStart=/usr/bin/airtime-liquidsoap
+#ExecReload=/bin/kill -HUP $MAINPID
+#KillMode=process
+ExecStopPost=/bin/rm -f /var/run/airtime-liquidsoap.pid
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

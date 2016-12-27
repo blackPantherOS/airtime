@@ -1,9 +1,14 @@
 =========================================================================
 =================   Airtime - Live Broadcast Together   =================
 =========================================================================
+== 	blackPanther OS and Systemd Support - added by V3ct0r          ==
+=========================================================================
 
-Airtime is an open source application that provides remote and 
-collaborative automation of a broadcast radio station.
+The original Airtime is an open source application that provides remote 
+and  collaborative automation of a broadcast radio station, without support
+RPM based distribution and without systemd support as well
+
+Tested and worked on blackPanther OS and blackPanther Server for two years!
 
 Home page: http://www.sourcefabric.org/en/airtime/
 

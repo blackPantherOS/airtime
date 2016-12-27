@@ -1,0 +1,89 @@
+#!/bin/sh
+
+#*********************************************************************************************************
+#*   __     __               __     ______                __   __                      _______ _______   *
+#*  |  |--.|  |.---.-..----.|  |--.|   __ \.---.-..-----.|  |_|  |--..-----..----.    |       |     __|  *
+#*  |  _  ||  ||  _  ||  __||    < |    __/|  _  ||     ||   _|     ||  -__||   _|    |   -   |__     |  *
+#*  |_____||__||___._||____||__|__||___|   |___._||__|__||____|__|__||_____||__|      |_______|_______|  *
+#* http://www.blackpantheros.eu | http://www.blackpanther.hu - kbarcza[]blackpanther.hu * Charles Barcza *
+#*************************************************************************************(c)2002-2017********
+
+# ReCreate RabbitMQ node
+
+
+rabbitmq_install () {
+    echo -en "RabbitMQ Server Setup..."
+    RABBITMQ_VHOST="/airtime"
+    RABBITMQ_USER=$(awk -F ' = ' '{if (! ($0 ~ /^;/) && $0 ~ /^user/ ) print $2}' /etc/airtime/airtime.conf)
+    RABBITMQ_PASSWORD=$(awk -F ' = ' '{if (! ($0 ~ /^;/) && $0 ~ /^password/ ) print $2}' /etc/airtime/airtime.conf)
+    EXCHANGES="airtime-pypo|pypo-fetch|airtime-media-monitor|media-monitor"
+
+# Ignore errors in this check to avoid dying when vhost isn't found
+set +e
+rabbitmqctl list_vhosts | grep -w ${RABBITMQ_VHOST} > /dev/null
+RESULT="$?"
+set -e
+
+# Only run these if the vhost doesn't exist
+if [ "$RESULT" != "0" ]; then
+    echo "\n * Creating RabbitMQ user ${RABBITMQ_USER}..."
+
+    rabbitmqctl add_vhost "${RABBITMQ_VHOST}"
+    rabbitmqctl add_user "${RABBITMQ_USER}" "${RABBITMQ_PASSWORD}"
+else
+    echo "\nRabbitMQ user already exists, skipping creation"
+fi
+
+echo "\n * Setting RabbitMQ user permissions..."
+rabbitmqctl set_permissions -p "${RABBITMQ_VHOST}" "${RABBITMQ_USER}" \"$EXCHANGES\" \"$EXCHANGES\" \"$EXCHANGES\"
+# fix perm again
+rabbitmqctl set_permissions -p /airtime airtime "airtime-pypo|pypo-fetch|airtime-media-monitor|media-monitor" "airtime-pypo|pypo-fetch|airtime-media-monitor|media-monitor" "airtime-pypo|pypo-fetch|airtime-media-monitor|media-monitor"
+echo " Done!"
+
+}
+
+rabbitmq_uninstall () {
+    if [ -f /etc/airtime/airtime.conf ]; then
+        RMQ_VHOST=$(awk -F ' = ' '{if (! ($0 ~ /^;/) && $0 ~ /^vhost/ ) print $2}' /etc/airtime/airtime.conf)
+        RMQ_USER=$(awk -F ' = ' '{if (! ($0 ~ /^;/) && $0 ~ /^user/ ) print $2}' /etc/airtime/airtime.conf)
+    else
+        RMQ_VHOST=/airtime
+        RMQ_USER=airtime
+    fi
+
+    rabbitmqctl delete_vhost ${RMQ_VHOST}
+    rabbitmqctl delete_user ${RMQ_USER}
+    
+    rm -rf /var/lib/rabbitmq/mnesia/*
+    service rabbitmq-server restart
+}
+
+    if [ "x$1" = "x" ];then
+	echo "Error parameter. Install or Uninstall?"
+	exit
+    fi
+    if [ "x$1" = "xun" ];then
+	rabbitmq_uninstall
+	exit
+    else
+	echo 
+    fi
+    
+if [ -f /var/run/rabbitmq/pid ];then
+    rabbitmq_install
+   else
+    echo "RabbitMQ Server Not Run! Try start service.."
+    if [ ! -d /var/run/rabbitqm ];then
+	mkdir -p /var/run/rabbitmq
+	chown rabbitmq:rabbitmq /var/run/rabbitmq
+    fi
+    /etc/rc.d/init.d/rabbitmq-server start
+    RET=$?
+    if [ "$RET" != "0" ];then
+	echo "ERROR! Rabbit Server Does Not started!"
+	exit
+	else
+	rabbitmq_install
+    fi
+    echo "Done"
+fi

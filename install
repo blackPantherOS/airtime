@@ -1,6 +1,14 @@
 #!/bin/bash -e
 #-e Causes bash script to exit if any of the installers
 #return with a non-zero return value.
+#
+# Added systemd support. Coded, tested by V3ct0r - blackPanther OS - www.blackpantheros.eu
+
+if [ ! -f /etc/blackPanther-release ];then
+    echo "This install script and this Airtime version, default supported blackPanther OS only!"
+    echo "You can download it: www.blackpantheros.eu"
+    exit 1
+fi
 
 if [[ $EUID -ne 0 ]]; then
     echo "Please run as root user."
@@ -11,7 +19,7 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 AIRTIMEROOT=${SCRIPT_DIR}
 
 showhelp () {
-    echo "Usage: sudo bash install [options]
+    echo "Usage: bash install [options]
     -h, --help, -?
                 Display usage information
     -V, --version
@@ -22,14 +30,14 @@ showhelp () {
                 No output except errors
     -f, --force
                 Turn off interactive prompts
-    --distribution=DISTRIBUTION
+    --distribution
                 Linux distribution the installation is being run on
-    --release=RELEASE
+    --release
                 Distribution release
     -d, --ignore-dependencies
                 Don't install binary dependencies
     -w, --web-user=WEB_USER
-                Set the apache web user. Defaults to www-data. Only change
+                Set the apache web user. Defaults to apache. Only change
                 this setting if you've changed the default apache web user
     -r, --web-root=WEB_ROOT
                 Set the web root for Airtime files
@@ -56,7 +64,7 @@ showversion () {
     exit 0
 }
 
-web_user="www-data"
+web_user="apache"
 web_root=""
 in_place="f"
 postgres="f"
@@ -279,35 +287,85 @@ if [ -z web_root -a ! -d web_root ]; then
     exit 1
 fi
 
-echo -e "\n   _____  .________________________.___   _____  ___________   "
-echo    "  /  _  \ |   \______   \__    ___/|   | /     \ \_   _____/     "
-echo    " /  /_\  \|   ||       _/ |    |   |   |/  \ /  \ |    __)_      "
-echo    "/    |    \   ||    |   \ |    |   |   /    Y    \|        \     "
-echo    "\____|__  /___||____|_  / |____|   |___\____|__  /_______  /     "
-echo -e "        \/            \/                       \/        \/    \n"
+echo -e "\n  _____  .________________________.___   _____  ___________   "
+echo    "   /  _  \ |   \______   \__    ___/|   | /     \ \_   _____/     "
+echo    "  /  /_\  \|   ||       _/ |    |   |   |/  \ /  \ |    __)_      "
+echo    " /    |    \   ||    |   \ |    |   |   /    Y    \|        \     "
+echo    " \____|__  /___||____|_  / |____|   |___\____|__  /_______  /     "
+echo 	"         \/            \/                       \/        \/      "
+echo -e " -- SystemD and blackPanther OS support! www.blackpantheros.eu -- \n"
 
 if [ "$ignore_dependencies" = "f" ]; then
     set +e
-    loudCmd "apt-get update"
-    if [ -z "${dist}" ]; then
-        loudCmd "apt-get -y --force-yes install lsb-release"
-        dist=`lsb_release -ds | awk '{print tolower($1);}'`
-        code=`lsb_release -cs`
+    if [ ! -f /etc/blackPanther-release ];then
+        if [ -z "${dist}" ]; then
+	    loudCmd "apt-get -y --force-yes install lsb-release"
+    	    dist=`lsb_release -ds | awk '{print tolower($1);}'`
+    	    code=`lsb_release -cs`
+        fi
+    else
+    	    dist=`lsb_release -ds | awk '{print tolower($1);}'`
+    	    code=`lsb_release -cs`
     fi
-
+    
     loud "\n-----------------------------------------------------"
     loud "         * Installing External Dependencies *        "
     loud "-----------------------------------------------------"
 
     verbose "\n * Reading requirements-${dist,,}-${code,,}.apt..."
-    if [ -f ${SCRIPT_DIR}/installer/lib/requirements-${dist,,}-${code,,}.apt ]; then
-        loudCmd "DEBIAN_FRONTEND=noninteractive apt-get -y -m --force-yes install $(grep -vE '^\s*#' ${SCRIPT_DIR}/installer/lib/requirements-${dist,,}-${code,,}.apt | tr '\n' ' ')"
-    else
-        loudCmd "DEBIAN_FRONTEND=noninteractive apt-get -y -m --force-yes install $(grep -vE '^\s*#' ${SCRIPT_DIR}/installer/lib/requirements-ubuntu-trusty.apt | tr '\n' ' ')"
+
+    if [ -f /etc/blackPanther-release ];then
+         loud "Updating Repositories..."
+	 sleep 3
+         loudCmd "updating repos"
+      else
+	 echo "Set any other repo updater"..
+	exit 1
     fi
+    if [ ! -f /etc/blackPanther-release ];then
+	if [ -f ${SCRIPT_DIR}/installer/lib/requirements-${dist,,}-${code,,}.apt ]; then
+    	    loudCmd "DEBIAN_FRONTEND=noninteractive apt-get -y -m --force-yes install $(grep -vE '^\s*#' ${SCRIPT_DIR}/installer/lib/requirements-${dist,,}-${code,,}.apt | tr '\n' ' ')"
+	else
+    	    loudCmd "DEBIAN_FRONTEND=noninteractive apt-get -y -m --force-yes install $(grep -vE '^\s*#' ${SCRIPT_DIR}/installer/lib/requirements-ubuntu-trusty.apt | tr '\n' ' ')"
+	fi
+    else
+    # Updated package list
+	loudCmd "installing tar gzip curl ocaml-soundtouch \
+	ocaml-taglib ocaml-ao ocaml-mad ocaml-lame ecasound libesound0 libportaudio2 libsamplerate0 rabbitmq-server patch \
+	mpg123 monit multitail ocaml-camomile-data libpulseaudio0 vorbis-tools lsb-release lsof mp3gain vorbisgain flac vorbis-tools pwgen libfaad2"
+
+	loudCmd "installing  postgresql postgresql-server libpsqlodbc"
+
+    # Installing PHP requires
+	loudCmd "installing apache-mod_php php-pear php-curl php-gd php-pgsql php-json php-pgsql php-pdo_pgsql php-cli php-apcu"
+	#BUG -> php-apc
+	
+	loudCmd "installing liblame-devel lame icecast"
+	loudCmd "installing libvo-aacenc0"
+	loudCmd "installing mutagen"
+
+	#1.10 and zend-framework is 1.11 
+	loudCmd "installing php-ZendFramework"
+	loudCmd "installing coreutils"
+	#installing 
+	loudCmd "installing liquidsoap"
+	loudCmd "installing silan"
+	loudCmd "installing libopus0"
+
+	# python modules
+	loudCmd "installing python"
+	loudCmd "installing python-kombu python-poster python-pytz"
+	loudCmd "installing python-pip python-six python-argparse"
+	loudCmd "installing python-amqp python-amqplib"
+	loudCmd "installing python-configobj python-dispatcher"
+	loudCmd "installing python-virtualenv python-pyinotify"
+    fi
+
+
+
     set -e
 else
-    checkCommandExists "apache2"
+    checkCommandExists "apachectl"
     checkCommandExists "rabbitmqctl"
     checkCommandExists "psql"
 fi
@@ -338,14 +396,16 @@ will be moved to /etc/airtime/airtime.conf.tmp"
         if [ "$apache" = "t" ]; then
             # If the user selects an "in-place" install or passes in a web root, 
             # we need to replace the old apache airtime.conf
-            rm /etc/apache2/sites-available/airtime.conf
+            rm /etc/httpd/conf/sites.d/airtime.conf
         fi
         
         if [ -d /usr/share/airtime -a web_root = /usr/share/airtime ]; then
             rm -rf /usr/share/airtime
         fi
         
-        mv /etc/airtime/airtime.conf /etc/airtime/airtime.conf.tmp
+        if [ -f /etc/airtime/airtime.conf ];then
+    	    mv /etc/airtime/airtime.conf /etc/airtime/airtime.conf.tmp
+    	fi
         set -e
     fi
 fi
@@ -380,7 +440,7 @@ if [ "$apache" = "t" ]; then
     loud "-----------------------------------------------------"
 
     set +e
-    apache2 -v | grep "2\.4" > /dev/null
+    apachectl -v | grep "2\.4" > /dev/null
     apacheversion=$?
     set -e
 
@@ -396,21 +456,21 @@ if [ "$apache" = "t" ]; then
     # install apache, we should overwrite any existing configuration. If we don't do this, doing
     # an in-place installation over an old Airtime install (which installs to /usr/share by default)
     # will fail
-    if [ "$upgrade" = "t" -o ! -f /etc/apache2/sites-available/${airtimeconfigfile} ]; then
+    if [ "$upgrade" = "t" -o ! -f /etc/httpd/conf/sites.d/${airtimeconfigfile} ]; then
         verbose "\n * Creating Apache config for Airtime..."
         
         if [ "$apacheversion" != "1" ]; then
-            sed -e "s@WEB_ROOT@${web_root}@g" ${SCRIPT_DIR}/installer/apache/airtime-vhost-2.4 > /etc/apache2/sites-available/${airtimeconfigfile}
+            sed -e "s@WEB_ROOT@${web_root}@g" ${SCRIPT_DIR}/installer/apache/airtime-vhost-2.4 > /etc/httpd/conf/sites.d/${airtimeconfigfile}
         else
-            sed -e "s@WEB_ROOT@${web_root}@g" ${SCRIPT_DIR}/installer/apache/airtime-vhost > /etc/apache2/sites-available/${airtimeconfigfile}
+            sed -e "s@WEB_ROOT@${web_root}@g" ${SCRIPT_DIR}/installer/apache/airtime-vhost > /etc/httpd/conf/sites.d/${airtimeconfigfile}
         fi
-        loudCmd "a2dissite 000-default"
+        loud " * Enabled by default"
         # If Airtime was previously installed with apt, the vhost file name is different,
         # so we need to specifically disable it.
-        if [ -f "/etc/apache2/sites-available/${oldconfigfile}" ]; then
-            loudCmd "a2dissite airtime-vhost"
-        fi
-        loudCmd "a2ensite airtime"
+        #if [ -f "/etc/httpd/conf/sites.d/${oldconfigfile}" ]; then
+        #    loudCmd "a2dissite airtime-vhost"
+        #fi
+        #loudCmd "a2ensite airtime"
     else
         verbose "\nApache config for Airtime already exists, skipping"
     fi
@@ -430,9 +490,10 @@ if [ "$icecast" = "t" ]; then
     loud "-----------------------------------------------------"
     
     verbose "\n * Enabling Icecast 2..."
-    sed -i 's/ENABLE=false/ENABLE=true/g' /etc/default/icecast2
+    loudCmd "systemctl enable icecast"
+    #sed -i 's/ENABLE=false/ENABLE=true/g' /etc/default/icecast2
     set +e
-    loudCmd "service icecast2 start"
+    loudCmd "systemctl start icecast "
     set -e
     verbose "...Done"
 fi
@@ -474,11 +535,11 @@ for i in /etc/init/airtime*.template; do
 done
 
 set +e
-loudCmd "initctl reload-configuration"
+#loudCmd "initctl reload-configuration"
 loudCmd "systemctl daemon-reload" #systemd hipsters
-loudCmd "update-rc.d airtime-playout defaults" # Start at bootup, on Debian
-loudCmd "update-rc.d airtime-media-monitor defaults" # Start at bootup, on Debian
-loudCmd "update-rc.d airtime-liquidsoap defaults" # Start at bootup, on Debian
+#loudCmd "update-rc.d airtime-playout defaults" # Start at bootup, on Debian
+#loudCmd "update-rc.d airtime-media-monitor defaults" # Start at bootup, on Debian
+#loudCmd "update-rc.d airtime-liquidsoap defaults" # Start at bootup, on Debian
 set -e
 
 if [ ! -d /var/log/airtime ]; then
@@ -503,15 +564,15 @@ chmod -R a+x /var/tmp/airtime
 chown -R ${web_user}:${web_user} /var/tmp/airtime/
 
 # PHP Config File for Apache
-if [ ! -f "/etc/php5/apache2/conf.d/airtime.ini" ]; then
+if [ ! -f "/etc/php.d/airtime.ini" ]; then
     verbose "\n * Creating Airtime PHP config for Apache..."
-    cp ${SCRIPT_DIR}/installer/php/airtime.ini /etc/php5/apache2/conf.d/airtime.ini
+    cp ${SCRIPT_DIR}/installer/php/airtime.ini /etc/php.d/airtime.ini
 else
     verbose "\nAirtime PHP config for Apache already exists, skipping"
 fi
 
 # Enable Apache modules
-loudCmd "a2enmod rewrite php5"
+#ALREADY ENABLED IF INI FILE EXISTS - loudCmd "a2enmod rewrite php5"
 
 loud "\n-----------------------------------------------------"
 loud "              * Configuring PostgreSQL *              "
@@ -568,6 +629,11 @@ fi
 verbose "\n * Setting RabbitMQ user permissions..."
 loudCmd "rabbitmqctl set_permissions -p ${RABBITMQ_VHOST} ${RABBITMQ_USER} \"$EXCHANGES\" \"$EXCHANGES\" \"$EXCHANGES\""
 
+loud "\n--------------------------------------------------------------------------"
+loud "   If the RabbitMQ is broken, run the rabbitqm-install script alone    *"
+loud "----------------------------------------------------------------------------"
+sleep 5
+
 if [ ! -d "/etc/airtime" ]; then
     loud "\n-----------------------------------------------------"
     loud "                * Installing Airtime *               "
@@ -579,9 +645,15 @@ fi
 chown -R ${web_user}:${web_user} /etc/airtime
 
 if [ ! -d "/srv/airtime" ]; then
+    verbose "\n * Creating default /srv/airtime Store directory...(This content movable to anywhere but you need modify in configuration)"
     mkdir -p /srv/airtime
+    sleep 5
 fi
+
+    verbose "\n * Set: ${web_user}:${web_user} /srv/airtime"
 chown -R ${web_user}:${web_user} /srv/airtime
+    verbose "\n * Set: ${web_user}:${web_user} /usr/share/airtime/public"
+chown -R ${web_user}:${web_user} /usr/share/airtime/public
 
 
 # We only generate the locales for Airtime if you're allowing us
@@ -596,30 +668,26 @@ if [ "$ignore_dependencies" = "f" ]; then
     verbose "\n * Generating locales"
     for i in `ls ${web_root}/../locale | grep ".._.."`; do
         if [ "$dist" = "debian" ]; then
-            grep -qi "^$i" /etc/locale.gen
+            grep -qi "^$i" /etc/sysconfig/i18n
             if [ $? -ne 0 ]; then
                 verbose "$i.UTF-8 UTF-8" >> /etc/locale.gen
             fi
-        else
-            loudCmd "locale-gen \"$i.utf8\""
         fi
     done
     set -e
 
-    if [ "$dist" = "debian" ]; then
-        loudCmd "/usr/sbin/locale-gen"
-    fi
 fi
 
 verbose "\n * Reloading apache..."
-loudCmd "service apache2 reload 2>/dev/null"
+loudCmd "systemctl reload httpd 2>/dev/null"
 
-IP=$(ifconfig eth0 2>/dev/null|awk '/inet addr:/ {print $2}'|sed 's/addr://')
+IP=`ifconfig $(route | grep default | awk '{print $8}') 2>/dev/null|awk '/inet addr:/ {print $2}'|sed 's/addr://'`
 
 echo -e "\n-----------------------------------------------------"
-echo    "                * Basic Setup DONE! *                "
+echo    "         * Basic Airtime Setup DONE! *                "
 echo    "                                                     "
 echo    " To get started with Airtime, visit ${IP}            "
 echo    " or, if you've set up your own web configuration,    "
 echo    " the Airtime webroot on your webserver               "
+echo    " And visit the: www.blackpantheros.eu as well        "
 echo    "-----------------------------------------------------"

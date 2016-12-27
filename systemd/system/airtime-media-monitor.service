@@ -1,0 +1,16 @@
+[Unit]
+Description=Airtime Media Monitor Daemon
+After=syslog.target network.target airtime-liquidsoap.service airtime-playout.service
+
+[Service]
+Type=simple
+PIDFile=/var/run/airtime-media-monitor.pid
+User=apache
+ExecStart=/usr/bin/airtime-media-monitor
+#ExecReload=/bin/kill -HUP $MAINPID
+#KillMode=process
+ExecStopPost=/bin/rm -f /var/run/airtime-media-monitor.pid
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

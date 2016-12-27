@@ -18,10 +18,12 @@ else:
             pypo_files.append(os.path.join(root, filename))
         
     data_files = [
-                  ('/etc/init', ['install/upstart/airtime-playout.conf.template']),
-                  ('/etc/init', ['install/upstart/airtime-liquidsoap.conf.template']),
-                  ('/etc/init.d', ['install/sysvinit/airtime-playout']),
-                  ('/etc/init.d', ['install/sysvinit/airtime-liquidsoap']),
+                  ('/etc/airtime', ['install/notify_logging.cfg']),
+                  ('/etc/airtime', ['install/pypo_logging.cfg']),
+                  ('/usr/lib/systemd/system/', ['systemd/system/airtime-liquidsoap.service']),
+                  ('/usr/lib/systemd/system/', ['systemd/system/airtime-media-monitor.service']),
+                  ('/usr/lib/systemd/system/', ['systemd/system/airtime-playout.service']),
+                  ('/usr/lib/tmpfiles.d/', ['systemd/tmpfiles/airtime-liquidsoap.conf']),
                   ('/var/log/airtime/pypo', []),
                   ('/var/log/airtime/pypo-liquidsoap', []),
                   ('/var/tmp/airtime/pypo', []),
@@ -67,4 +69,4 @@ setup(name='airtime-playout',
 if data_files:
     print "Reloading initctl configuration"
     #call(['initctl', 'reload-configuration'])
-    print "Run \"sudo service airtime-playout start\" and \"sudo service airtime-liquidsoap start\""
+    print "Run \"service airtime-playout start\" and \"service airtime-liquidsoap start\""
