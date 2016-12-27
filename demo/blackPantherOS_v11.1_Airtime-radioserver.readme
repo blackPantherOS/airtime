@@ -1,0 +1,40 @@
+#*********************************************************************************************************
+#*   __     __               __     ______                __   __                      _______ _______   *
+#*  |  |--.|  |.---.-..----.|  |--.|   __ \.---.-..-----.|  |_|  |--..-----..----.    |       |     __|  *
+#*  |  _  ||  ||  _  ||  __||    < |    __/|  _  ||     ||   _|     ||  -__||   _|    |   -   |__     |  *
+#*  |_____||__||___._||____||__|__||___|   |___._||__|__||____|__|__||_____||__|      |_______|_______|  *
+#*													 *
+#* http://www.blackpantheros.eu | http://www.blackpanther.hu - kbarcza[]blackpanther.hu * Charles Barcza *
+#*************************************************************************************(c)2002-2014********
+
+ -------- blackPanther OS Radio-server based on Airtime from Sourcefabric -------------------
+ 
+- Older Demo version with Airtime 2.5.0!
+
+[Default logins]
+ 
+CD logins: 
+ Username : root    Password: root
+ Username : airtime Password: airtime
+ 
+Web interface:
+ Username:  admin   Password: admin
+ Visitor :  visitor Password: visitor
+ DJ      :  dj	    Password: dj
+ 
+ 
+Icecast login:
+ Admin  :  admin    Password: admin    
+ Source :  source   Password: source
+ 
+
+Servers:
+RabbitQM, Icecast2, PostgreSQL, MySQL, Monit, Apache, PHP, Proftpd, Shorewall, SSHD, Fail2Ban
+Airtime-Media-Monitor, Airtime-LiquidSoap, Airtime-Playout
+StreamTranscoderv3, Ntpd
+
+Other:
+blackPanther Settings Wizards (settings)
+Sensors, PCMonitor, Iptables,GPM, MPD,HDDtemp
+Tmux, MidnightCommander, Htop, multitail
+
